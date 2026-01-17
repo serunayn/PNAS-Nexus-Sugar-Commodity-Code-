@@ -1,1 +1,294 @@
+if (!require(googlesheets4)) install.packages("googlesheets4")
+if (!require(dplyr)) install.packages("dplyr")
+library(googlesheets4)
+library(dplyr)
 
+# Load the Google Sheets
+sheet_urlproduction <- "https://docs.google.com/spreadsheets/d/1netLeppLawq7uPuQ6ytwpqcbNpGvEhxjPogX7xRn5V4/edit?gid=1703734095#gid=1703734095"
+sheet_urltrade <- "https://docs.google.com/spreadsheets/d/1N_mcIc29ttNN3QjgIqY26rScNEvNhMdtwNmTblhmrY8/edit?gid=0#gid=0"
+sheet_urlnew <- "https://docs.google.com/spreadsheets/d/15t2nze1zWCRPMUwm7BHNtFrygQB2P_rrmWskfW5OWeI/edit?gid=0#gid=0" 
+
+# Read the sheets into R 
+Africa_data <- read_sheet(
+  ss = sheet_urlproduction,
+  sheet = "Africa", 
+  col_types = "ncccccccccnnnnnnncccc")
+SA_data <- read_sheet(
+  ss = sheet_urlproduction,
+  sheet = "South America", 
+  col_types = "ncccccccccnnnnnnnccccc")
+  
+NA_data <- read_sheet(sheet_urlproduction, sheet = "North America")
+Caribbean_data <- read_sheet(sheet_urlproduction, sheet = "Caribbean")
+Oceania_data <- read_sheet(sheet_urlproduction, sheet = "Oceania")
+Asia_data <- read_sheet(sheet_urlproduction, sheet = "Asia")
+CA_data <- read_sheet(sheet_urlproduction, sheet = "Central America")
+Europe_data <- read_sheet(
+  ss = sheet_urlproduction,
+  sheet = "Europe", 
+  col_types = "ncccccccccnnnnnnnccccc")
+
+#mutate columns 
+Caribbean_data <- Caribbean_data %>%
+  mutate(`Cane area og` = as.numeric(sapply(`Cane area og`, function(x) if (is.numeric(x)) x else NA)))
+
+Africa_data <- Africa_data %>%
+  mutate(`Cane area og` = as.numeric(`Cane area og`))
+
+SA_data <- SA_data %>%
+  mutate(`Cane area og` = as.numeric(`Cane area og`))
+
+NA_data <- NA_data %>%
+  mutate(`Cane area og` = as.numeric(`Cane area og`))
+
+Europe_data <- Europe_data %>%
+  mutate(`Cane area og` = as.numeric(`Cane area og`))
+
+Oceania_data <- Oceania_data %>%
+  mutate(`Cane area og` = as.numeric(`Cane area og`))
+
+Asia_data <- Asia_data %>%
+  mutate(`Cane area og` = as.numeric(`Cane area og`))
+
+CA_data <- CA_data %>%
+  mutate(`Cane area og` = as.numeric(`Cane area og`))
+
+# Combine all regional production data 
+global_production_all <- bind_rows(
+  Africa_data,
+  SA_data,
+  NA_data,
+  Caribbean_data,
+  Europe_data,
+  Oceania_data,
+  Asia_data,
+  CA_data
+)
+
+
+#EXPORT DATA
+# Read the sheet into R 
+Africa_export <- read_sheet(sheet_urltrade, sheet = "Africa export")
+SA_export <- read_sheet(sheet_urltrade, sheet = "SA export")
+Caribbean_export <- read_sheet(sheet_urltrade, sheet = "Caribbean export")
+Europe_export <- read_sheet(sheet_urltrade, sheet = "Europe export")
+Oceania_export <- read_sheet(sheet_urltrade, sheet = "Oceania export")
+Asia_export <- read_sheet(sheet_urltrade, sheet = "Asia export")
+CA_export <- read_sheet(sheet_urltrade, sheet = "CA export")
+FAO_export <- read_sheet(sheet_urltrade, sheet = "FAO Export")
+
+#combine into global exportset with all columns
+global_export_all <- bind_rows(
+  Africa_export,
+  SA_export,
+  Caribbean_export,
+  Europe_export,
+  Oceania_export,
+  Asia_export,
+  CA_export,
+  FAO_export
+)
+
+#UK TRADE 
+UK_Trade <- read_sheet(sheet_urltrade, sheet = "UK Trade")
+
+# Define a mapping of inconsistent names to their corrected values
+name_map <- c(
+  # Fix UK
+  "UK" = "United Kingdom",
+  "United Kingdom of Great Britain and Northern Ireland" = "United Kingdom",
+  "UK Great Britain" = "United Kingdom",
+  
+  # Fix Russia
+  "Russia USSR" = "Russia",
+  "USSR" = "Russia",
+  "Russian Federation" = "Russia",
+  
+  # Fix China and Taiwan
+  "China, mainland" = "China",
+  "China, Hong Kong SAR" = "China",
+  "China, Macao SAR" = "China",
+  "China, Taiwan Province of" = "Taiwan",
+  
+  # Fix Venezuela
+  "Venezuela (Bolivarian Republic of)" = "Venezuela",
+  
+  # Fix Germany
+  "Germany (Added East and West)" = "Germany",
+  
+  # Fix Czechoslovakia
+  "Czechoslovakia" = "Czech Republic",
+  
+  # Fix typos
+  "Belieze" = "Belize",
+  "Kyrgistan" = "Kyrgyzstan",
+  "CROATIA-SLAVONIA" = "Croatia",
+  
+  # Fix Belgium-Luxembourg and Netherlands
+  "Belgium-Luxembourg" = "Belgium",
+  "Netherlands (Kingdom of the)" = "Netherlands",
+  
+  # Fix Turkey
+  "Türkiye" = "Turkey",
+  
+  # Fix Iran
+  "Iran (Islamic Republic of)" = "Iran",
+  
+  # Fix Bolivia
+  "Bolivia (Plurinational State of)" = "Bolivia",
+  
+  # Fix United States
+  "United States of America" = "USA",
+  
+  # Fix Côte d'Ivoire
+  "Côte d'Ivoire" = "Ivory Coast",
+  
+  # Fix Eswatini
+  "Swaziland" = "Eswatini",
+  
+  # Fix Timor-Leste
+  "East Timor" = "Timor-Leste",
+  
+  # Fix Sudan
+  "Sudan (former)" = "Sudan",
+  
+  # Fix South Sudan
+  "Republic of South Sudan" = "South Sudan"
+)
+
+# Clean names production 
+global_production_all <- global_production_all %>%
+  mutate(`Modern name` = recode(`Modern name`, !!!name_map))
+  
+global_export_all <- global_export_all %>%
+  mutate(`Modern Name` = recode(`Modern Name`, !!!name_map))
+
+#Clean UK Trade names 
+UK_Trade <- UK_Trade %>%
+  mutate(`Modern name'`= recode(`Modern name`, !!!name_map))
+
+# Verify the results
+unique(global_production_all$`Modern name`)
+unique(global_export_all$`Modern Name`)
+unique(UK_Trade$`Modern name`)  
+  
+  
+  
+  
+#CREATE NEW DATASET FOR RAW PRODUCTION 
+# Function to calculate the mean production per country per year, keeping necessary columns
+creating_total_production <- function(global_production_data) {
+  
+  # Step 1: Create the total production for each country, keeping "Cane Beet"
+  country_means <- global_production_all %>%
+    filter(!is.na(`Production (mt)`) & `Production (mt)` > 0 &
+             `Crop Raw` == "Raw") %>%
+    group_by(Year, `Modern name`, `Cane Beet`) %>%  
+    summarize(mean_production = mean(`Production (mt)`[ `Production (mt)` > 0 ], na.rm = TRUE),
+              .groups = 'drop')  # Drop the grouping structure after summarizing
+  
+  # Step 2: Separate into Cane, Beet, and Both 
+  country_means <- country_means %>%
+    mutate(
+      Cane_Production = ifelse(`Cane Beet` == "Cane" & mean_production > 0, mean_production, 0),
+      Beet_Production = ifelse(`Cane Beet` == "Beet" & mean_production > 0, mean_production, 0),
+      Both_Production = ifelse(`Cane Beet` == "Both" & mean_production > 0, mean_production, 0)
+    ) %>%
+    group_by(Year, `Modern name`) %>%  # Group by Year and Modern name only
+    summarize(
+      Cane_Production = sum(Cane_Production, na.rm = TRUE),  # Sum of Cane production
+      Beet_Production = sum(Beet_Production, na.rm = TRUE),  # Sum of Beet production
+      Both_Production = sum(Both_Production, na.rm = TRUE),  # Sum of Both production
+      Total_Cane_Beet = Cane_Production + Beet_Production,   # Total Cane + Beet
+      Mean_Both = Both_Production,                           # This is the total of "Both"
+      # Mean of Cane+Beet and Both, ensuring only positive values are considered
+      Total_Sugar_Production = mean(c(Total_Cane_Beet, Mean_Both)[c(Total_Cane_Beet, Mean_Both) > 0], na.rm = TRUE),
+      .groups = 'drop'
+    )
+  
+  return(country_means)  # Return country-level data
+}
+
+# Apply the function to the global dataset
+global_Production <- creating_total_production(global_production_all)
+
+
+#AREA
+# Function to calculate the mean Cane and Beet area and sum the total area for each region
+create_total_area <- function(region_data, region_name) {
+  
+  # Step 1: Calculate the mean Cane and Beet area per country per year
+  area_data <- region_data %>%
+    # Filter out rows where both Cane area and Beet area are zero
+    filter(`Cane area ha` > 0 | `Beet area ha` > 0) %>%
+    # Group by Modern name and Year
+    group_by(`Modern name`, Year) %>%
+    # Calculate the mean for Cane area and Beet area
+    summarize(
+      Cane_area_mean = mean(`Cane area ha`, na.rm = TRUE),  # Mean of Cane area per country and year
+      Beet_area_mean = mean(`Beet area ha`, na.rm = TRUE)   # Mean of Beet area per country and year
+    ) %>%
+    # Create a new column for total_area by summing Cane_area_mean and Beet_area_mean, ignoring NA values
+    mutate(total_area = rowSums(cbind(Cane_area_mean, Beet_area_mean), na.rm = TRUE))
+}
+
+global_area <- create_total_area(global_production_all, global)
+
+
+#EXPORT 
+# Calculate the average "Data value (mt)" for the same "Year" and "Modern name"
+global_export <- global_export_all %>%
+  group_by(Year, `Modern Name`) %>%
+  summarise(Average_Data_Value = mean(`Data value (mt)`, na.rm = TRUE)) %>%
+  ungroup()
+
+# Ensure column names align
+global_export <- global_export %>% rename(`Modern name` = `Modern Name`, Export = Average_Data_Value)  
+  
+  
+  
+# Add a new tab and write the data
+sheet_write(
+  global_area,            
+  ss = sheet_urlnew,     
+  sheet = "Global Area")
+
+sheet_write(
+  global_Production,
+  ss = sheet_urlnew,
+  sheet = "Global Production")
+
+sheet_write(
+  global_export,
+  ss = sheet_urlnew,
+  sheet= "Global Export")
+  
+  
+# Perform the full join
+global_combined <- global_Production %>%
+  full_join(global_area, by = c("Year", "Modern name")) %>%
+  full_join(global_export, by = c("Year", "Modern name"))
+  
+  
+
+# Prepare unique values for merging
+region_big_data <- global_production_all %>% filter(!is.na(`Region Big`)) %>% distinct(Year, `Modern name`, `Region Big`)
+
+region_big_data <- region_big_data %>%
+  group_by(Year, `Modern name`) %>%
+  slice(1) %>%  # Keep the first occurrence
+  ungroup()
+
+# Merge historical empire, region, subregion, historical notes, and empire into the global dataset
+global_combined_expanded <- global_combined %>%
+  left_join(region_big_data, by = c("Year", "Modern name"))
+
+sheet_write(
+  global_combined_expanded,
+  ss = sheet_urlnew,
+  sheet = "global combined expanded")
+
+sheet_write(
+  UK_Trade,
+  ss = sheet_urlnew,
+  sheet = "UK Trade")
