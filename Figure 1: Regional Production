@@ -1,0 +1,251 @@
+# Install required packages if not already installed
+if (!requireNamespace("dplyr", quietly = TRUE)) install.packages("dplyr")
+if (!requireNamespace("ggplot2", quietly = TRUE)) install.packages("ggplot2")
+if (!requireNamespace("scales", quietly = TRUE)) install.packages("scales")
+if (!requireNamespace("cowplot", quietly = TRUE)) install.packages("cowplot")
+if (!requireNamespace("gridExtra", quietly = TRUE)) install.packages("gridExtra")
+if (!requireNamespace("grid", quietly = TRUE)) install.packages("grid")
+
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+library(gridExtra)
+library(grid)
+library(scales)
+
+# Define custom color palette
+custom_colors <- c(
+  "Asia" = "#1f78b4",       # Blue 
+  "Africa" = "#33a02c",     # Green 
+  "Central America" = "#e31a1c",  # Red 
+  "North America" = "#ff7f00",     # Orange
+  "Oceania" = "#6a3d9a",    # Purple 
+  "South America" = "#b15928",     # Brown 
+  "Europe" = "#a6cee3",     # Light Blue 
+  "Caribbean" = "#b2df8a",   # Light Green 
+  "East Atlantic" = "#fdbf6f" 
+)
+
+# Define the main plotting function
+plot_total_sugar_production_with_region <- function(
+    region_data,
+    region_name,
+    region_big = NULL,
+    selected_countries = NULL,
+    exclude_countries = NULL,
+    group_by_region = FALSE,
+    start_year,
+    end_year,
+    show_y_label = FALSE
+) {
+  # Filter the data
+  region_filtered <- region_data %>%
+    filter(is.null(region_big) | `Region Big` %in% region_big) %>%
+    filter(is.null(selected_countries) | `Modern name` %in% selected_countries) %>%
+    filter(is.null(exclude_countries) | !`Modern name` %in% exclude_countries) %>%
+    filter(Year >= start_year & Year <= end_year) %>%
+    filter(!is.na(Total_Sugar_Production))
+  
+  # Check if filtered data is empty
+  if (nrow(region_filtered) == 0) {
+    stop("Filtered data is empty. Please check the filter conditions.")
+  }
+  
+  # Determine grouping and summarize data
+if (group_by_region) {
+    region_filtered <- region_filtered %>%
+      filter(`Modern name` != region_name) %>%
+      group_by(Year, `Region Big`) %>%
+      summarize(
+        Total_Sugar_Production = sum(Total_Sugar_Production, na.rm = TRUE),
+        .groups = 'drop'
+      )
+    color_variable <- "Region Big"
+  } else {
+    color_variable <- "Modern name"
+  }
+  
+  # Ensure consistent factor levels
+  region_filtered[[color_variable]] <- factor(
+    region_filtered[[color_variable]],
+    levels = names(custom_colors)
+  )
+  
+  # Create the plot
+  p <- ggplot(
+    region_filtered,
+    aes(x = Year, y = Total_Sugar_Production)
+  ) +
+    geom_area(aes(fill = .data[[color_variable]]), alpha = 1, position = "stack", show.legend = FALSE) +
+    labs(
+      x = "Year",
+      y = if (show_y_label) expression("Sugar Production (kt " ~ y^{-1} ~ ")")
+    ) +
+    theme_minimal() +
+    scale_y_continuous(
+      labels = scales::label_number(scale = 0.001, big.mark = ",", accuracy = 1),
+      breaks = scales::breaks_pretty()
+    ) +
+    scale_fill_manual(
+      values = custom_colors,
+      na.translate = FALSE,
+      drop = FALSE
+    ) +
+    scale_x_continuous(
+      expand = c(0, 0),
+      limits = c(start_year, end_year)
+    )+
+    guides(
+      fill = "none",
+      linetype = "none",
+      size = "none",
+      shape = "none",
+      alpha = "none",
+      linewidth = "none"
+    ) +
+    theme(
+      axis.title.y = element_text(
+        family = "serif",
+        size = 12,
+        face = "plain",
+        color = "black"
+      ),
+      plot.margin = unit(c(5.5, 5.5, 5.5, 5.5), "points")
+    ) +
+    theme(
+      text = element_text(size = 14),        # Default text size
+      axis.title = element_text(size = 12),      # Axis titles
+      axis.text = element_text(size = 10),       # Axis labels
+      plot.title = element_text(size = 14, face = "bold"), # Plot title
+      legend.text = element_text(size = 14),     # Legend text
+      legend.title = element_text(size = 14)       # Legend title
+    )
+return(p)
+}
+
+# Create individual plots with titles
+plot1 <- plot_total_sugar_production_with_region(
+  region_data = global_combined_expanded,
+  region_name = "",
+  exclude_countries = c(
+    "Caribbean", "Asia", "Europe", "South America", "North America",
+    "Central America", "Africa", "Oceania"
+  ),
+  group_by_region = TRUE,
+  start_year = 1440,
+  end_year = 1620,
+  show_y_label = TRUE
+) +
+  labs(title = "b") +
+  theme(legend.position = "none")
+
+plot2 <- plot_total_sugar_production_with_region(
+  region_data = global_combined_expanded,
+  region_name = "",
+  exclude_countries = c(
+    "Caribbean", "Asia", "Europe", "South America", "North America",
+    "Central America", "Africa", "Oceania"
+  ),
+  group_by_region = TRUE,
+  start_year = 1620,
+  end_year = 1790,
+  show_y_label = FALSE
+) +
+  labs(title = "c") +
+  theme(legend.position = "none")
+
+plot3 <- plot_total_sugar_production_with_region(
+  region_data = global_combined_expanded,
+  region_name = "",
+  exclude_countries = c(
+    "Caribbean", "Asia", "Europe", "South America", "North America",
+    "Central America", "Africa", "Oceania"
+  ),
+  group_by_region = TRUE,
+  start_year = 1790,
+  end_year = 1914,
+  show_y_label = FALSE
+) +
+  labs(title = "d") +
+  theme(legend.position = "none")
+
+plot4 <- plot_total_sugar_production_with_region(
+  region_data = global_combined_expanded,
+  region_name = "",
+  exclude_countries = c(
+    "Caribbean", "Asia", "Europe", "South America", "North America",
+    "Central America", "Africa", "Oceania"
+  ),
+  group_by_region = TRUE,
+  start_year = 1914,
+  end_year = 2022,
+  show_y_label = FALSE
+) +
+  labs(title = "e") +
+  theme(legend.position = "none")
+
+plot_top <- plot_total_sugar_production_with_region(
+  region_data = global_combined_expanded,
+  region_name = "",
+  exclude_countries = c(
+    "Caribbean", "Asia", "Europe", "South America", "North America",
+    "Central America", "Africa", "Oceania"
+  ),
+  group_by_region = TRUE,
+  start_year = 1450,
+  end_year = 2022,
+  show_y_label = TRUE
+) +
+  labs(title = "a") +
+  theme(legend.position = "none")
+
+# Create legend data
+legend_data <- data.frame(
+  Region = factor(names(custom_colors), levels = names(custom_colors)),
+  x = 1,
+  y = 1
+)
+
+# Create legend plot
+legend_plot <- ggplot(legend_data, aes(x = x, y = y, color = Region)) +
+  geom_point() +
+  scale_color_manual(values = custom_colors) +
+  guides(color = guide_legend(title = "")) +
+  theme_void() +
+  theme(
+    legend.position = "bottom",
+    legend.box = "horizontal",
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12)
+  )
+
+# Extract legend
+legend_b <- legend_plot
+
+# Create shared y-axis label
+y_label <- textGrob(
+  "Sugar Production (kt y-1)",
+  rot = 90,
+  gp = gpar(
+    fontfamily = "serif",
+    fontsize = 14,
+    col = "black"
+  )
+)
+
+# Arrange plots
+top_row <- arrangeGrob(
+  grobs = list(plot1, plot2, plot3, plot4),
+  nrow = 1,
+  widths = c(1, 1, 1, 1)
+)
+
+# Final arrangement
+grid.arrange(
+  plot_top,
+  top_row,
+  legend_b,
+  nrow = 3,
+  heights = c(1.5, 3, 0.5)
+)
