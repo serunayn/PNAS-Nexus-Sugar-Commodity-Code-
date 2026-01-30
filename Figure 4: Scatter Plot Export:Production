@@ -8,11 +8,6 @@ for (pkg in required_packages) {
   }
 }
 
-library(ggplot2)
-library(dplyr)
-library(scales)
-library(gridExtra)
-
 # Function to create scatter plots and return data
 create_scatter_plot <- function(data, start_year, end_year, x_limits = NULL, y_limits = NULL) {
   # Filter for the desired period and ignore rows where Export is zero
@@ -33,7 +28,14 @@ create_scatter_plot <- function(data, start_year, end_year, x_limits = NULL, y_l
   plot <- ggplot(averaged_data, aes(x = Avg_Production, y = Avg_Export, label = `Modern name`)) +
     geom_point(aes(color = Avg_Export_to_Production_Ratio), size = 3) +
     geom_abline(intercept = 0, slope = 1, color = "grey50", linetype = "solid") +
-    geom_text(hjust = 1.1, vjust = 1.1, size = 3, color = "black") +  # Label all points
+    geom_text_repel(
+      data = subset(averaged_data, Avg_Export_to_Production_Ratio > 0.0),
+      size = 3,
+      box.padding = 0.5, 
+      point.padding = 0.3,
+      segment.color = 'grey50',
+      max.overlaps = 20 # Prevents the plot from becoming too busy
+    ) +
     scale_color_gradient(
       low = "blue", 
       high = "red", 
